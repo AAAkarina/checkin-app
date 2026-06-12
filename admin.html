@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>后台 - 今夜晚安否？</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;background:#111;color:#ddd;font-family:system-ui,sans-serif;padding:24px;max-width:600px;margin:0 auto}
+h2{color:#fff;text-align:center;margin-bottom:24px}
+.stat{background:#1a1a1a;border-radius:16px;padding:24px;text-align:center;margin-bottom:24px}
+.num{display:block;font-size:48px;color:#667eea;font-weight:700}
+.label{font-size:14px;color:#888}
+h3{color:#fff;margin:20px 0 10px}
+table{width:100%;border-collapse:collapse;margin-bottom:24px;background:#1a1a1a;border-radius:12px;overflow:hidden}
+th,td{padding:10px 12px;text-align:left;font-size:14px}
+th{color:#888;border-bottom:1px solid #222}
+.pwd{background:#1a1a1a;border-radius:16px;padding:24px;margin-bottom:24px}
+.pwd input{padding:12px;border-radius:8px;border:1px solid #333;background:#222;color:#fff;font-size:16px;width:100%;margin-bottom:12px}
+.pwd button{padding:12px;border-radius:8px;border:none;background:#667eea;color:#fff;font-size:16px;cursor:pointer;font-weight:600;width:100%}
+.link{margin-top:24px;font-size:12px;color:#666;text-align:center}
+.refresh{background:none;border:1px solid #444;color:#888;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px}
+</style>
+</head>
+<body>
+<div id="login" class="pwd">
+<h2>🔐 管理后台</h2>
+<input type="password" id="pwdInput" placeholder="输入管理密码" autofocus>
+<button onclick="login()">登录</button>
+</div>
+<div id="main" style="display:none">
+<h2>🌙 今夜晚安否？</h2>
+<div class="stat"><span class="num" id="total">-</span><span class="label">总打卡人次</span></div>
+<div id="byDate"></div>
+<div id="records"></div>
+<button class="refresh" onclick="load()">🔄 刷新</button>
+<p class="link" id="linkArea"></p>
+</div>
+<script>
+// Token 从 URL hash 读取
+function getToken(){
+const h=location.hash.slice(1);
+const m=h.match(/token=([^&]+)/);
+return m?m[1]:sessionStorage.getItem('gh_token')||'';
+}
+function setToken(t){sessionStorage.setItem('gh_token',t)}
+
+const REPO='AAAkarina/checkin-app';
+const FILE='data.json';
+const API='https://api.github.com/repos/'+REPO+'/contents/'+FILE;
+
+async function login(){
+const TOKEN=getToken();
+if(!TOKEN){alert('链接缺少 Token，请联系管理员');return}
+const H={Authorization:'Bearer '+TOKEN};
+try{
+const r=await fetch(API,{headers:H});
+const d=await r.json();
+if(d.content){
+document.getElementById('login').style.display='none';
+document.getElementById('main').style.display='block';
+document.getElementById('linkArea').innerHTML='打卡链接：<code>'+location.origin+location.pathname.replace('admin.html','')+'#'+location.hash.slice(1)+'</code>';
+show(JSON.parse(atob(d.content)));
+}
+}catch(e){alert('加载失败，请重试')}
+}
+
+function load(){login()}
+
+function show(data){
+const records=data.records||[];
+document.getElementById('total').textContent=records.length;
+const byDate={};
+records.forEach(r=>{const d=r.date||r.time.slice(0,10);byDate[d]=(byDate[d]||0)+1});
+let h='<h3>📅 每日统计</h3><table><tr><th>日期</th><th>打卡次数</th></tr>';
+Object.entries(byDate).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([d,c])=>{h+='<tr><td>'+d+'</td><td>'+c+'</td></tr>'});
+h+='</table>';
+document.getElementById('byDate').innerHTML=h;
+h='<h3>📋 最近记录</h3><table><tr><th>时间</th><th>日期</th></tr>';
+records.slice(-50).reverse().forEach(r=>{h+='<tr><td>'+(r.time||'')+'</td><td>'+(r.date||'')+'</td></tr>'});
+h+='</table>';
+document.getElementById('records').innerHTML=h;
+}
+
+// 自动取 token
+(function(){const t=getToken();if(t)setToken(t)})();
+</script>
+</body>
+</html>

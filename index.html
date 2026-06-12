@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>今夜晚安否？</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;background:linear-gradient(180deg,#0a0a2e,#1a1a4e 50%,#2a2a5e);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;overflow:hidden}
+.stars{position:absolute;inset:0}
+.stars span{position:absolute;width:3px;height:3px;background:#fff;border-radius:50%;animation:twinkle 3s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.2}50%{opacity:1}}
+.card{background:rgba(255,255,255,.06);backdrop-filter:blur(20px);border-radius:24px;padding:40px 32px;text-align:center;z-index:1;border:1px solid rgba(255,255,255,.1);max-width:320px;width:90%}
+.title{color:rgba(255,255,255,.7);font-size:18px;margin-bottom:32px;letter-spacing:2px}
+.btn{background:linear-gradient(135deg,#667eea,#764ba2);border:none;color:#fff;font-size:22px;padding:16px 40px;border-radius:50px;cursor:pointer;font-weight:600;letter-spacing:2px;box-shadow:0 8px 30px rgba(102,126,234,.4);transition:transform .2s}
+.btn:active{transform:scale(.95)}
+.btn:disabled{opacity:.6}
+.done{color:#fff}
+.check{font-size:48px;display:block;margin-bottom:16px}
+.dt{font-size:20px;margin:8px 0}
+.ct{font-size:14px;color:rgba(255,255,255,.5)}
+.err{color:#ff6b6b;font-size:14px;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+<div class="card">
+<p class="title">💤 今夜晚安否？</p>
+<div id="idle">
+<button class="btn" onclick="doCheckin()">🌙 晚安打卡</button>
+</div>
+<div id="done" class="done" style="display:none">
+<span class="check">✅</span>
+<p class="dt">晚安，好梦 🌙</p>
+<p class="ct" id="countText"></p>
+</div>
+<p id="err" class="err"></p>
+</div>
+<script>
+for(let i=0;i<30;i++){const s=document.createElement('span');s.style.left=Math.random()*100+'%';s.style.top=Math.random()*60+'%';s.style.animationDelay=Math.random()*3+'s';stars.appendChild(s)}
+
+// Token 从 URL hash 读取，不存代码里。链接格式：#token=ghp_xxx
+function getToken(){
+const h=location.hash.slice(1);
+const m=h.match(/token=([^&]+)/);
+return m?m[1]:sessionStorage.getItem('gh_token')||'';
+}
+function setToken(t){sessionStorage.setItem('gh_token',t)}
+
+const REPO='AAAkarina/checkin-app';
+const FILE='data.json';
+const API='https://api.github.com/repos/'+REPO+'/contents/'+FILE;
+
+async function doCheckin(){
+const TOKEN=getToken();
+if(!TOKEN){err.textContent='初始化失败，请检查链接';return}
+const btn=document.querySelector('.btn');btn.disabled=true;btn.textContent='...';err.textContent='';
+const H={Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'};
+try{
+const getResp=await fetch(API,{headers:H});
+const getData=await getResp.json();
+const sha=getData.sha;
+const content=JSON.parse(atob(getData.content));
+const records=content.records||[];
+const now=new Date().toISOString();
+const today=now.slice(0,10);
+records.push({time:now,date:today});
+const body=JSON.stringify({message:'🌙 晚安打卡',content:btoa(unescape(encodeURIComponent(JSON.stringify({records},null,2)))),sha});
+const putResp=await fetch(API,{method:'PUT',headers:H,body});
+const putData=await putResp.json();
+if(putData.content){idle.style.display='none';done.style.display='block';countText.textContent='第 '+records.length+' 位打卡人'}else{err.textContent=putData.message||'打卡失败'}
+}catch(e){err.textContent='网络错误，请稍后重试'}
+btn.disabled=false;btn.textContent='🌙 晚安打卡'
+}
+
+// 首次打开时从 hash 取 token 存起来
+(function(){
+const t=getToken();if(t)setToken(t);
+if(location.hash&&!t){location.hash=''}
+})();
+</script>
+</body>
+</html>
