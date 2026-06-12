@@ -37,7 +37,7 @@ return m?m[1]:sessionStorage.getItem('ght')||'';
 function setToken(t){sessionStorage.setItem('ght',t)}
 (function(){const t=getToken();if(t)setToken(t)})()
 
-const API='https://api.github.com/repos/AAAkarina/checkin-app/contents/data.json';
+const API='https://api.github.com/repos/AAAkarina/checkin-app/contents/data.json?ref=gh-pages';
 
 async function doCheckin(){
 const TOKEN=getToken();
@@ -51,7 +51,7 @@ if(!g.ok){err.textContent='读取失败 HTTP '+g.status;btn.disabled=false;btn.t
 const gd=await g.json();const sha=gd.sha;const content=JSON.parse(atob(gd.content));
 const records=content.records||[];const now=new Date().toISOString();const today=now.slice(0,10);
 records.push({time:now,date:today});
-const body=JSON.stringify({message:'🌙 晚安打卡',content:btoa(unescape(encodeURIComponent(JSON.stringify({records},null,2)))),sha});
+const body=JSON.stringify({message:'🌙 晚安打卡',branch:'gh-pages',content:btoa(unescape(encodeURIComponent(JSON.stringify({records},null,2)))),sha});
 const p=await fetch(API,{method:'PUT',headers:{...H,'Content-Type':'application/json'},body});
 if(!p.ok){const pe=await p.json().catch(()=>({}));err.textContent='写入失败 HTTP '+p.status+' '+((pe||{}).message||'');btn.disabled=false;btn.textContent='🌙 晚安打卡';return}
 const pd=await p.json();
