@@ -15,16 +15,14 @@ export async function GET(request: Request) {
     const { blobs } = await list({ prefix: "checkins/", limit: 2000 });
 
     const records = blobs.map((b) => {
-      return {
-        time: b.uploadedAt,
-        path: b.pathname,
-      };
+      const t = b.uploadedAt;
+      const ts = typeof t === "string" ? t : new Date(t).toISOString();
+      return { time: ts };
     });
 
-    // 按日期分组
     const byDate: Record<string, number> = {};
     records.forEach((r) => {
-      const d = typeof r.time === "string" ? r.time.slice(0, 10) : new Date(r.time).toISOString().slice(0, 10);
+      const d = String(r.time).slice(0, 10);
       byDate[d] = (byDate[d] || 0) + 1;
     });
 
