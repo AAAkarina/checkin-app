@@ -1,11 +1,19 @@
 {
   "roster": [
-    "see my name"
+    "see my name",
+    "xcr"
   ],
   "records": [
     {
       "nickname": "see my name",
       "time": "2026-06-14T14:27:21.746Z",
+      "date": "2026-06-14",
+      "lat": "39.98691",
+      "lng": "116.35312"
+    },
+    {
+      "nickname": "xcr",
+      "time": "2026-06-14T14:49:34.561Z",
       "date": "2026-06-14",
       "lat": "39.98691",
       "lng": "116.35312"
