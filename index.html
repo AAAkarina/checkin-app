@@ -79,7 +79,7 @@ btn.textContent='📝 打卡中...';
 try{
 const H={Authorization:'Bearer '+TOKEN,Accept:'application/vnd.github+json'};
 const g=await fetch(API,{headers:H});const gd=await g.json();const sha=gd.sha;
-const data=JSON.parse(atob(gd.content));const records=data.records||[];const roster=data.roster||[];
+const data=JSON.parse(atob(gd.content.replace(/[^A-Za-z0-9+/=]/g,'')));const records=data.records||[];const roster=data.roster||[];
 if(!roster.includes(nick)){roster.push(nick)}
 const now=new Date().toISOString();const today=now.slice(0,10);
 records.push({nickname:nick,time:now,date:today,lat:pos.coords.latitude.toFixed(5),lng:pos.coords.longitude.toFixed(5)});

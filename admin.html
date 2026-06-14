@@ -44,7 +44,7 @@ const TOKEN=getToken();if(!TOKEN){alert('Token未找到');return}
 const H={Authorization:'Bearer '+TOKEN,Accept:'application/vnd.github+json'};
 try{
 const r=await fetch(API,{headers:H});const d=await r.json();
-const data=JSON.parse(atob(d.content));show(data);
+const data=JSON.parse(atob(d.content.replace(/[^A-Za-z0-9+/=]/g,'')));show(data);
 document.getElementById('linkArea').innerHTML='打卡链接：<code>'+location.origin+location.pathname.replace('admin.html','')+'#token='+getToken()+'</code>'
 }catch(e){alert('加载失败: '+e.message)}
 }
