@@ -79,11 +79,11 @@ btn.textContent='📝 打卡中...';
 try{
 const H={Authorization:'Bearer '+TOKEN,Accept:'application/vnd.github+json'};
 const g=await fetch(API,{headers:H});const gd=await g.json();const sha=gd.sha;
-const data=JSON.parse(decodeURIComponent(escape(atob(gd.content.replace(/[^A-Za-z0-9+/=]/g,'')))));const records=data.records||[];const roster=data.roster||[];
+const data=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(gd.content.replace(/[^A-Za-z0-9+/=]/g,'')),c=>c.charCodeAt(0))));const records=data.records||[];const roster=data.roster||[];
 if(!roster.includes(nick)){roster.push(nick)}
 const now=new Date().toISOString();const today=now.slice(0,10);
 records.push({nickname:nick,time:now,date:today,lat:pos.coords.latitude.toFixed(5),lng:pos.coords.longitude.toFixed(5)});
-const body=JSON.stringify({message:'🌙 晚安打卡 - '+nick,branch:'gh-pages',content:btoa(unescape(encodeURIComponent(JSON.stringify({roster,records},null,2)))),sha});
+const body=JSON.stringify({message:'🌙 晚安打卡 - '+nick,branch:'gh-pages',content:btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify({roster,records},null,2)))),sha});
 const p=await fetch(API,{method:'PUT',headers:{...H,'Content-Type':'application/json'},body});
 if(!p.ok){const pe=await p.json().catch(()=>({}));err.textContent='写入失败 '+p.status+' '+((pe||{}).message||'');btn.disabled=false;btn.textContent='🌙 晚安打卡';return}
 localStorage.setItem(key,'1');if(!savedNick()){saveNick(nick);document.getElementById('nickInput').style.display='none';document.getElementById('savedHint').style.display='block'}
