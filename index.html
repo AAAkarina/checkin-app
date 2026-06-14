@@ -10,28 +10,35 @@ body{min-height:100vh;background:linear-gradient(180deg,#0a0a2e,#1a1a4e 50%,#2a2
 .stars{position:absolute;inset:0}
 .stars span{position:absolute;width:3px;height:3px;background:#fff;border-radius:50%;animation:twinkle 3s ease-in-out infinite}
 @keyframes twinkle{0%,100%{opacity:.2}50%{opacity:1}}
-.card{background:rgba(255,255,255,.06);backdrop-filter:blur(20px);border-radius:24px;padding:40px 32px;text-align:center;z-index:1;border:1px solid rgba(255,255,255,.1);max-width:320px;width:90%}
+.card{background:rgba(255,255,255,.06);backdrop-filter:blur(20px);border-radius:24px;padding:40px 32px;text-align:center;z-index:1;border:1px solid rgba(255,255,255,.1);max-width:340px;width:90%}
 .title{color:rgba(255,255,255,.7);font-size:18px;margin-bottom:32px;letter-spacing:2px}
-.btn{background:linear-gradient(135deg,#667eea,#764ba2);border:none;color:#fff;font-size:22px;padding:16px 40px;border-radius:50px;cursor:pointer;font-weight:600;letter-spacing:2px;box-shadow:0 8px 30px rgba(102,126,234,.4);transition:transform .2s}
+.input{width:100%;padding:12px 16px;border-radius:50px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:16px;text-align:center;margin-bottom:16px;outline:none}
+.input::placeholder{color:rgba(255,255,255,.3);font-size:14px}
+.btn{background:linear-gradient(135deg,#667eea,#764ba2);border:none;color:#fff;font-size:22px;padding:16px 40px;border-radius:50px;cursor:pointer;font-weight:600;letter-spacing:2px;box-shadow:0 8px 30px rgba(102,126,234,.4);transition:transform .2s;display:block;width:100%}
 .btn:active{transform:scale(.95)}.btn:disabled{opacity:.6}
 .done{color:#fff}.check{font-size:48px;display:block;margin-bottom:16px}
 .dt{font-size:20px;margin:8px 0}.ct{font-size:14px;color:rgba(255,255,255,.5)}
 .err{color:#ff6b6b;font-size:13px;margin-top:16px;padding:0 8px}
+.hint{font-size:11px;color:rgba(255,255,255,.25);margin-top:8px}
 </style>
 </head>
 <body>
 <div class="stars" id="stars"></div>
 <div class="card">
 <p class="title">💤 今夜晚安否？</p>
-<div id="idle"><button class="btn" onclick="doCheckin()">🌙 晚安打卡</button></div>
+<div id="idle">
+<input class="input" id="nickInput" type="text" placeholder="请填写一个可以代表你身份的词" maxlength="20" autocomplete="off">
+<button class="btn" onclick="doCheckin()">🌙 晚安打卡</button>
+<p class="hint" id="savedHint" style="display:none">已记住你，无需重复填写</p>
+</div>
 <div id="done" class="done" style="display:none"><span class="check">✅</span><p class="dt">晚安，好梦 🌙</p><p class="ct" id="countText"></p></div>
 <p id="err" class="err"></p>
 </div>
 <script>
 // ═══════ 配置 ═══════
-const TARGET={lat:39.98750,lng:116.35304}; // 北四环中路257号
-const RANGE=120; // 允许范围（米）
-const RESET_HOUR=6; // 每天6点重置
+const TARGET={lat:39.98750,lng:116.35304};
+const RANGE=120;
+const RESET_HOUR=6;
 
 // ═══════ 星星 ═══════
 for(let i=0;i<30;i++){const s=document.createElement('span');s.style.left=Math.random()*100+'%';s.style.top=Math.random()*60+'%';s.style.animationDelay=Math.random()*3+'s';stars.appendChild(s)}
@@ -42,53 +49,45 @@ function setToken(t){sessionStorage.setItem('ght',t)};(function(){const t=getTok
 
 const API='https://api.github.com/repos/AAAkarina/checkin-app/contents/data.json?ref=gh-pages';
 
-// ═══════ 工具 ═══════
-function haversine(lat1,lon1,lat2,lon2){
-const R=6371000;const dLat=(lat2-lat1)*Math.PI/180;const dLon=(lon2-lon1)*Math.PI/180;
-const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))
-}
+// ═══════ 昵称（设备绑定）═══════
+function savedNick(){return localStorage.getItem('nick')||''}
+function saveNick(n){localStorage.setItem('nick',n)}
 function todayKey(){const d=new Date();d.setHours(d.getHours()-RESET_HOUR);return d.toISOString().slice(0,10)}
+(function(){const n=savedNick();if(n){document.getElementById('nickInput').value=n;document.getElementById('nickInput').style.display='none';document.getElementById('savedHint').style.display='block'}})()
+
+// ═══════ 工具 ═══════
+function haversine(lat1,lon1,lat2,lon2){const R=6371000;const dLat=(lat2-lat1)*Math.PI/180;const dLon=(lon2-lon1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
 
 // ═══════ 打卡 ═══════
 async function doCheckin(){
 err.textContent='';const btn=document.querySelector('.btn');btn.disabled=true;btn.textContent='...';
+const TOKEN=getToken();if(!TOKEN){err.textContent='初始化失败';btn.disabled=false;btn.textContent='🌙 晚安打卡';return}
 
-// 1. Token检查
-const TOKEN=getToken();
-if(!TOKEN){err.textContent='初始化失败，请检查链接';btn.disabled=false;btn.textContent='🌙 晚安打卡';return}
+let nick=savedNick()||document.getElementById('nickInput').value.trim();
+if(!nick){err.textContent='请先填写一个代表你的词';btn.disabled=false;btn.textContent='🌙 晚安打卡';return}
 
-// 2. 每日一次检查
-const key='last_'+todayKey();
-if(localStorage.getItem(key)){err.textContent='今天已经打过卡啦，明天再来 🌅';btn.disabled=false;btn.textContent='🌙 晚安打卡';return}
+const key='last_'+todayKey();if(localStorage.getItem(key)){err.textContent='今天已经打过卡啦，明天再来 🌅';btn.disabled=false;btn.textContent='🌙 晚安打卡';return}
 
-// 3. 定位
-btn.textContent='📍 定位中...';
-let pos;
-try{
-pos=await new Promise((resolve,reject)=>{
-navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:10000,maximumAge:60000})
-})
-}catch(e){err.textContent='请允许定位权限后重试';btn.disabled=false;btn.textContent='🌙 晚安打卡';return}
+btn.textContent='📍 定位中...';let pos;
+try{pos=await new Promise((r,j)=>{navigator.geolocation.getCurrentPosition(r,j,{enableHighAccuracy:true,timeout:10000,maximumAge:60000})})}
+catch(e){err.textContent='请允许定位权限后重试';btn.disabled=false;btn.textContent='🌙 晚安打卡';return}
 
-// 4. 距离检查
 const dist=haversine(TARGET.lat,TARGET.lng,pos.coords.latitude,pos.coords.longitude);
-if(dist>RANGE){err.textContent='你离得太远啦（距离开源机器 '+Math.round(dist)+'m，需在 '+RANGE+'m 内）';btn.disabled=false;btn.textContent='🌙 晚安打卡';return}
+if(dist>RANGE){err.textContent='距离太远（'+Math.round(dist)+'m，需在'+RANGE+'m内）';btn.disabled=false;btn.textContent='🌙 晚安打卡';return}
 
-// 5. 打卡
 btn.textContent='📝 打卡中...';
 try{
 const H={Authorization:'Bearer '+TOKEN,Accept:'application/vnd.github+json'};
-const g=await fetch(API,{headers:H});
-if(!g.ok){err.textContent='读取失败 HTTP '+g.status;btn.disabled=false;btn.textContent='🌙 晚安打卡';return}
-const gd=await g.json();const sha=gd.sha;const content=JSON.parse(atob(gd.content));
-const records=content.records||[];const now=new Date().toISOString();const today=now.slice(0,10);
-records.push({time:now,date:today,lat:pos.coords.latitude.toFixed(5),lng:pos.coords.longitude.toFixed(5)});
-const body=JSON.stringify({message:'🌙 晚安打卡',branch:'gh-pages',content:btoa(unescape(encodeURIComponent(JSON.stringify({records},null,2)))),sha});
+const g=await fetch(API,{headers:H});const gd=await g.json();const sha=gd.sha;
+const data=JSON.parse(atob(gd.content));const records=data.records||[];const roster=data.roster||[];
+if(!roster.includes(nick)){roster.push(nick)}
+const now=new Date().toISOString();const today=now.slice(0,10);
+records.push({nickname:nick,time:now,date:today,lat:pos.coords.latitude.toFixed(5),lng:pos.coords.longitude.toFixed(5)});
+const body=JSON.stringify({message:'🌙 晚安打卡 - '+nick,branch:'gh-pages',content:btoa(unescape(encodeURIComponent(JSON.stringify({roster,records},null,2)))),sha});
 const p=await fetch(API,{method:'PUT',headers:{...H,'Content-Type':'application/json'},body});
 if(!p.ok){const pe=await p.json().catch(()=>({}));err.textContent='写入失败 '+p.status+' '+((pe||{}).message||'');btn.disabled=false;btn.textContent='🌙 晚安打卡';return}
-const pd=await p.json();
-if(pd.content){localStorage.setItem(key,'1');idle.style.display='none';done.style.display='block';countText.textContent='第 '+records.length+' 位打卡人'}else{err.textContent='写入异常'}
+localStorage.setItem(key,'1');if(!savedNick()){saveNick(nick);document.getElementById('nickInput').style.display='none';document.getElementById('savedHint').style.display='block'}
+idle.style.display='none';done.style.display='block';countText.textContent='第 '+records.length+' 位打卡人，'+nick+' ✨'
 }catch(e){err.textContent='错误: '+e.message}
 btn.disabled=false;btn.textContent='🌙 晚安打卡'
 }
