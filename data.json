@@ -1,1 +1,14 @@
-{"roster":[],"records":[]}
+{
+  "roster": [
+    "see my name"
+  ],
+  "records": [
+    {
+      "nickname": "see my name",
+      "time": "2026-06-14T14:27:21.746Z",
+      "date": "2026-06-14",
+      "lat": "39.98691",
+      "lng": "116.35312"
+    }
+  ]
+}
